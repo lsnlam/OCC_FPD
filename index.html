@@ -26,6 +26,8 @@
     <h2>Make It Yours!</h2>
     <p class="subtitle">Upload your photo to embed yourself into the 'Blue Sofa' postcard.</p>
 
+    <img id="hiddenTemplate" src="Blue Sofa_Template.png" style="display:none;" alt="" />
+
     <div class="upload-wrapper">
         <label for="imageLoader" class="btn">📸 Upload Your Photo</label>
         <input type="file" id="imageLoader" accept="image/*"/>
@@ -33,7 +35,7 @@
     
     <canvas id="postcardCanvas"></canvas>
 
-    <img id="displayImage" src="Blue Sofa_Template.png" alt="Loading Template..." />
+    <img id="displayImage" src="Blue Sofa_template.png" alt="Loading Template..." />
 
     <a id="downloadBtn" class="btn">💾 Download Postcard</a>
 
@@ -45,34 +47,32 @@
 </div>
 
 <script>
-    // 1. HARDCODE canvas dimensions to guarantee Safari doesn't create a 0x0 canvas
     const CANVAS_WIDTH = 686;
     const CANVAS_HEIGHT = 1188;
 
     const canvas = document.getElementById('postcardCanvas');
     canvas.width = CANVAS_WIDTH;
     canvas.height = CANVAS_HEIGHT;
-
     const ctx = canvas.getContext('2d');
+
     const imageLoader = document.getElementById('imageLoader');
     const displayImage = document.getElementById('displayImage');
     const downloadBtn = document.getElementById('downloadBtn');
     const saveInstructions = document.getElementById('saveInstructions');
-
-    // 2. Set image loading sequence correctly for mobile caching
-    const templateImg = new Image();
-    templateImg.onload = function() {
-        console.log("Template loaded");
-    };
-    templateImg.onerror = function() {
-        alert("Error: The template image could not load.");
-    };
-    templateImg.src = 'template.png'; 
+    
+    // We grab the hidden HTML image instead of downloading it twice via JavaScript
+    const hiddenTemplate = document.getElementById('hiddenTemplate');
 
     imageLoader.addEventListener('change', handleImage, false);
 
     function handleImage(e) {
         if (!e.target.files[0]) return;
+
+        // Failsafe: Ensure HTML template is ready
+        if (!hiddenTemplate.complete || hiddenTemplate.naturalWidth === 0) {
+            alert("Error: Template is still loading. Please wait a second or refresh the page.");
+            return;
+        }
 
         const uploadLabel = document.querySelector('.upload-wrapper .btn');
         const originalLabelText = uploadLabel.innerText;
@@ -90,7 +90,6 @@
                     const drawWidth = 420; 
                     const drawHeight = 350; 
 
-                    // Center and crop math
                     const imgRatio = userImg.width / userImg.height;
                     const boxRatio = drawWidth / drawHeight;
                     let sWidth = userImg.width;
@@ -108,33 +107,28 @@
 
                     // Draw User Photo
                     ctx.drawImage(userImg, sX, sY, sWidth, sHeight, drawX, drawY, drawWidth, drawHeight);
-                    // Draw Template Over It
-                    ctx.drawImage(templateImg, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                    
+                    // Draw Template Over It directly from the hidden HTML tag
+                    ctx.drawImage(hiddenTemplate, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-                    // 3. THE FIX: Output as JPEG instead of PNG to save mobile memory
                     const finalDataUrl = canvas.toDataURL('image/jpeg', 0.95);
                     
-                    // Failsafe: If iPhone STILL runs out of memory, it outputs "data:,"
                     if (finalDataUrl === "data:,") {
                         alert("Your photo is too large for your phone's browser memory. Try taking a screenshot of your photo first to shrink the file size, then upload that!");
                         uploadLabel.innerText = originalLabelText;
                         return;
                     }
 
-                    // Display the final image
                     displayImage.src = finalDataUrl;
-                    
-                    // Setup Download
                     downloadBtn.href = finalDataUrl;
                     downloadBtn.download = "My_Blue_Sofa_Postcard.jpg";
                     downloadBtn.style.display = "inline-block";
 
-                    // Show instructions
                     document.querySelector('.upload-wrapper').style.display = 'none';
                     saveInstructions.style.display = 'block';
 
                 } catch (err) {
-                    alert("Something went wrong while processing. Please try a different photo.");
+                    alert("Something went wrong: " + err.message);
                     uploadLabel.innerText = originalLabelText;
                 }
             }
