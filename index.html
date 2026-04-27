@@ -12,7 +12,7 @@
         .upload-wrapper { margin-top: 25px; position: relative; }
         .btn { display: inline-block; padding: 18px 30px; background: #c5a363; color: #fff; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; text-decoration: none; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: background 0.2s ease; margin: 10px 0; }
         .btn:hover { background: #ae8f55; }
-        #downloadBtn { background: #3c3c3c; display: none; } /* Hidden until image is ready */
+        #downloadBtn { background: #3c3c3c; display: none; }
         input[type="file"] { display: none; }
         .instructions { font-size: 16px; color: #555; margin-top: 20px; display: none; line-height: 1.5; }
         .instructions strong { color: #c5a363; }
@@ -33,7 +33,7 @@
     
     <canvas id="postcardCanvas"></canvas>
 
-    <img id="displayImage" src="https://github.com/lsnlam/OCC_FPD/blob/main/Blue%20Sofa_Template.png?raw=true" alt="E-Postcard Preview" />
+    <img id="displayImage" src="template.png" alt="Loading Template..." />
 
     <a id="downloadBtn" class="btn">💾 Download Postcard</a>
 
@@ -45,30 +45,35 @@
 </div>
 
 <script>
+    // 1. HARDCODE canvas dimensions to guarantee Safari doesn't create a 0x0 canvas
+    const CANVAS_WIDTH = 686;
+    const CANVAS_HEIGHT = 1188;
+
     const canvas = document.getElementById('postcardCanvas');
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+
     const ctx = canvas.getContext('2d');
     const imageLoader = document.getElementById('imageLoader');
     const displayImage = document.getElementById('displayImage');
     const downloadBtn = document.getElementById('downloadBtn');
     const saveInstructions = document.getElementById('saveInstructions');
 
+    // 2. Set image loading sequence correctly for mobile caching
     const templateImg = new Image();
-    // Use your GitHub URL
-    templateImg.crossOrigin = "anonymous"; 
-    templateImg.src = 'https://github.com/lsnlam/OCC_FPD/blob/main/Blue%20Sofa_Template.png?raw=true'; 
-
     templateImg.onload = function() {
-        // Set canvas dimensions dynamically based on your GitHub template
-        canvas.width = templateImg.width;
-        canvas.height = templateImg.height;
-    }
+        console.log("Template loaded");
+    };
+    templateImg.onerror = function() {
+        alert("Error: The template image could not load.");
+    };
+    templateImg.src = 'template.png'; 
 
     imageLoader.addEventListener('change', handleImage, false);
 
     function handleImage(e) {
         if (!e.target.files[0]) return;
 
-        // Change button text to show processing state for mobile users
         const uploadLabel = document.querySelector('.upload-wrapper .btn');
         const originalLabelText = uploadLabel.innerText;
         uploadLabel.innerText = "⏳ Processing...";
@@ -78,16 +83,14 @@
             const userImg = new Image();
             userImg.onload = function() {
                 try {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-                    // Placement for the 'Blue Sofa' silhouettes (Your exact coordinates)
                     const drawX = 330;   
                     const drawY = 410;  
                     const drawWidth = 420; 
                     const drawHeight = 350; 
 
-                    // SMART CROP CALCULATION FOR MOBILE PHOTOS
-                    // Centers and crops the photo without squishing it
+                    // Center and crop math
                     const imgRatio = userImg.width / userImg.height;
                     const boxRatio = drawWidth / drawHeight;
                     let sWidth = userImg.width;
@@ -103,28 +106,35 @@
                         sY = (userImg.height - sHeight) / 2;
                     }
 
-                    // Draw user photo FIRST using the Smart Crop coordinates
+                    // Draw User Photo
                     ctx.drawImage(userImg, sX, sY, sWidth, sHeight, drawX, drawY, drawWidth, drawHeight);
-                    
-                    // Draw your GitHub template OVER the user photo
-                    ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+                    // Draw Template Over It
+                    ctx.drawImage(templateImg, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-                    // Output the final image
-                    const finalDataUrl = canvas.toDataURL('image/png');
+                    // 3. THE FIX: Output as JPEG instead of PNG to save mobile memory
+                    const finalDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+                    
+                    // Failsafe: If iPhone STILL runs out of memory, it outputs "data:,"
+                    if (finalDataUrl === "data:,") {
+                        alert("Your photo is too large for your phone's browser memory. Try taking a screenshot of your photo first to shrink the file size, then upload that!");
+                        uploadLabel.innerText = originalLabelText;
+                        return;
+                    }
+
+                    // Display the final image
                     displayImage.src = finalDataUrl;
                     
-                    // Set up Download Button (Your exact logic)
+                    // Setup Download
                     downloadBtn.href = finalDataUrl;
-                    downloadBtn.download = "My_Blue_Sofa_Postcard.png";
+                    downloadBtn.download = "My_Blue_Sofa_Postcard.jpg";
                     downloadBtn.style.display = "inline-block";
 
-                    // Update UI
+                    // Show instructions
                     document.querySelector('.upload-wrapper').style.display = 'none';
                     saveInstructions.style.display = 'block';
 
                 } catch (err) {
-                    // Safety net if a massive mobile photo causes a canvas crash
-                    alert("Something went wrong processing the photo. Please try a different image.");
+                    alert("Something went wrong while processing. Please try a different photo.");
                     uploadLabel.innerText = originalLabelText;
                 }
             }
