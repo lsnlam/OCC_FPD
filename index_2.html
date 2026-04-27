@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blue Sofa E-Postcard</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; text-align: center; background: #fdfaf3; padding: 0; margin: 0; }
+        .container { max-width: 500px; margin: 30px auto; padding: 20px; box-sizing: border-box; }
+        canvas { display: none; }
+        #displayImage { max-width: 100%; height: auto; border: 1px solid #e0dbce; border-radius: 8px; margin-top: 15px; display: block; margin-left: auto; margin-right: auto; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .upload-wrapper { margin-top: 25px; position: relative; }
+        .btn { display: inline-block; padding: 18px 30px; background: #c5a363; color: #fff; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; text-decoration: none; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: background 0.2s ease; margin: 10px 0; }
+        .btn:hover { background: #ae8f55; }
+        #downloadBtn { background: #3c3c3c; display: none; } /* Hidden until image is ready */
+        input[type="file"] { display: none; }
+        .instructions { font-size: 16px; color: #555; margin-top: 20px; display: none; line-height: 1.5; }
+        .instructions strong { color: #c5a363; }
+        h2 { font-weight: 300; font-size: 24px; margin-bottom: 5px; color: #3c3c3c; }
+        p.subtitle { font-size: 14px; color: #888; margin-top: 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Make It Yours!</h2>
+    <p class="subtitle">Upload your photo to embed yourself into the 'Blue Sofa' postcard.</p>
+
+    <div class="upload-wrapper">
+        <label for="imageLoader" class="btn">📸 Upload Your Photo</label>
+        <input type="file" id="imageLoader" accept="image/*"/>
+    </div>
+    
+    <canvas id="postcardCanvas"></canvas>
+
+    <!-- GitHub Image Link -->
+    <img id="displayImage" src="https://github.com/lsnlam/OCC_FPD/blob/main/Blue%20Sofa_Template.png?raw=true" alt="E-Postcard Preview" />
+
+    <a id="downloadBtn" class="btn">💾 Download Postcard</a>
+
+    <div class="instructions" id="saveInstructions">
+        <p><strong>✨ Postcard Created!</strong></p>
+        <p>You are now embedded into the 'Blue Sofa'!</p>
+        <p>Click the button above or long-press the image to save it.</p>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('postcardCanvas');
+    const ctx = canvas.getContext('2d');
+    const imageLoader = document.getElementById('imageLoader');
+    const displayImage = document.getElementById('displayImage');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const saveInstructions = document.getElementById('saveInstructions');
+
+    const templateImg = new Image();
+    // Use your GitHub URL
+    templateImg.crossOrigin = "anonymous"; 
+    templateImg.src = 'https://github.com/lsnlam/OCC_FPD/blob/main/Blue%20Sofa_Template.png?raw=true'; 
+
+    templateImg.onload = function() {
+        canvas.width = templateImg.width;
+        canvas.height = templateImg.height;
+    }
+
+    imageLoader.addEventListener('change', handleImage, false);
+
+    function handleImage(e) {
+        if (!e.target.files[0]) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const userImg = new Image();
+            userImg.onload = function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Placement for the 'Blue Sofa' silhouettes
+                const drawX = 330;   
+                const drawY = 410;  
+                const drawWidth = 420; 
+                const drawHeight = 350; 
+
+                ctx.drawImage(userImg, drawX, drawY, drawWidth, drawHeight);
+                ctx.drawImage(templateImg, 0, 0);
+
+                const finalDataUrl = canvas.toDataURL('image/png');
+                displayImage.src = finalDataUrl;
+                
+                // Set up Download Button
+                downloadBtn.href = finalDataUrl;
+                downloadBtn.download = "My_Blue_Sofa_Postcard.png";
+                downloadBtn.style.display = "inline-block";
+
+                document.querySelector('.upload-wrapper').style.display = 'none';
+                saveInstructions.style.display = 'block';
+            }
+            userImg.src = event.target.result;
+        }
+        reader.readAsDataURL(e.target.files[0]);
+    }
+</script>
+
+</body>
+</html>
