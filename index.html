@@ -98,7 +98,89 @@
         }
         reader.readAsDataURL(e.target.files[0]);
     }
-</script>
+<script>
+    const canvas = document.getElementById('postcardCanvas');
+    const ctx = canvas.getContext('2d');
+    const imageLoader = document.getElementById('imageLoader');
+    const displayImage = document.getElementById('displayImage');
+    const saveInstructions = document.getElementById('saveInstructions');
 
+    // 1. HARDCODE the dimensions to your specific postcard.
+    // This prevents the mobile browser from ever creating a blank 0x0 canvas.
+    const CANVAS_WIDTH = 686;
+    const CANVAS_HEIGHT = 1188;
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+
+    // Load the template
+    const templateImg = new Image();
+    templateImg.crossOrigin = "anonymous"; // Prevents security blocks on GitHub Pages
+    templateImg.src = 'template.png'; 
+
+    // Handle user photo upload
+    imageLoader.addEventListener('change', handleImage, false);
+
+    function handleImage(e) {
+        if (!e.target.files[0]) return; 
+
+        // Update button text so the user knows the phone is processing
+        const uploadLabel = document.querySelector('.upload-wrapper .btn');
+        uploadLabel.innerText = "⏳ Processing...";
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const userImg = new Image();
+            userImg.onload = function() {
+                try {
+                    // Clear the canvas securely
+                    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+                    // The designated window area
+                    const drawX = 35;   
+                    const drawY = 118;  
+                    const drawWidth = 616;  
+                    const drawHeight = 595; 
+
+                    // 2. SMART CROP CALCULATION FOR MOBILE PHOTOS
+                    // This perfectly centers and crops massive phone photos 
+                    // without stretching them or crashing the canvas memory.
+                    const imgRatio = userImg.width / userImg.height;
+                    const boxRatio = drawWidth / drawHeight;
+                    let sWidth = userImg.width;
+                    let sHeight = userImg.height;
+                    let sX = 0;
+                    let sY = 0;
+
+                    if (imgRatio > boxRatio) {
+                        sWidth = sHeight * boxRatio;
+                        sX = (userImg.width - sWidth) / 2;
+                    } else {
+                        sHeight = sWidth / boxRatio;
+                        sY = (userImg.height - sHeight) / 2;
+                    }
+
+                    // Draw user photo (Bottom Layer)
+                    ctx.drawImage(userImg, sX, sY, sWidth, sHeight, drawX, drawY, drawWidth, drawHeight);
+                    
+                    // Draw template window (Top Layer)
+                    ctx.drawImage(templateImg, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+                    // Convert to final viewable image
+                    displayImage.src = canvas.toDataURL('image/png');
+
+                    // Hide upload button and show success text
+                    document.querySelector('.upload-wrapper').style.display = 'none';
+                    saveInstructions.style.display = 'block';
+
+                } catch (err) {
+                    alert("Something went wrong processing the photo. Please try a different image.");
+                    uploadLabel.innerText = "📸 Upload Your Photo";
+                }
+            }
+            userImg.src = event.target.result;
+        }
+        reader.readAsDataURL(e.target.files[0]);
+    }
+</script>
 </body>
 </html>
