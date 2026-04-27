@@ -26,7 +26,8 @@
     <h2>Make It Yours!</h2>
     <p class="subtitle">Upload your photo to embed yourself into the 'Blue Sofa' postcard.</p>
 
-    <img id="hiddenTemplate" src="Blue%20Sofa_Template.png" style="display:none;" alt="" />
+    <!-- Hidden Template Area -->
+    <img id="hiddenTemplate" src="Blue%20Sofa_Template.png" style="display:none;" alt="" onerror="console.error('Template image failed to load. Check the filename and capitalization!');" />
 
     <div class="upload-wrapper">
         <label for="imageLoader" class="btn">📸 Upload Your Photo</label>
@@ -35,7 +36,7 @@
     
     <canvas id="postcardCanvas"></canvas>
 
-    <img id="displayImage" src="Blue%20Sofa_Template.png" alt="Loading Template..." />
+    <img id="displayImage" src="Blue%20Sofa_Template.png" alt="Postcard Template" />
 
     <a id="downloadBtn" class="btn">💾 Download Postcard</a>
 
@@ -47,10 +48,9 @@
 </div>
 
 <script>
-    // Hardcoded canvas size to prevent 0x0 crash
+    // 1. Setup Canvas
     const CANVAS_WIDTH = 686;
     const CANVAS_HEIGHT = 1188;
-
     const canvas = document.getElementById('postcardCanvas');
     canvas.width = CANVAS_WIDTH;
     canvas.height = CANVAS_HEIGHT;
@@ -60,13 +60,84 @@
     const displayImage = document.getElementById('displayImage');
     const downloadBtn = document.getElementById('downloadBtn');
     const saveInstructions = document.getElementById('saveInstructions');
-    const hiddenTemplate = document.getElementById('hiddenTemplate');
+    const templateImg = document.getElementById('hiddenTemplate');
 
     imageLoader.addEventListener('change', handleImage, false);
 
     function handleImage(e) {
-        if (!e.target.files[0]) return;
+        const file = e.target.files[0];
+        if (!file) return;
 
-        // Ensure the template image is actually loaded on the page
-        if (!hiddenTemplate.complete || hiddenTemplate.naturalWidth === 0) {
-            alert("Error: Template is still loading. Please wait a second or refresh
+        const uploadLabel = document.querySelector('.upload-wrapper .btn');
+        uploadLabel.innerText = "⏳ Processing...";
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const userImg = new Image();
+            userImg.onload = function() {
+                // Ensure template is loaded before drawing
+                if (templateImg.complete && templateImg.naturalWidth !== 0) {
+                    processDrawing(userImg);
+                } else {
+                    templateImg.onload = () => processDrawing(userImg);
+                    // Re-assign src to force a refresh if it got stuck
+                    templateImg.src = templateImg.src;
+                }
+            };
+            userImg.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function processDrawing(userImg) {
+        try {
+            // Clear board
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Coordinates for the "hole" in the template
+            const drawX = 330;   
+            const drawY = 410;  
+            const drawWidth = 420; 
+            const drawHeight = 350; 
+
+            // Aspect ratio math (to prevent squished faces)
+            const imgRatio = userImg.width / userImg.height;
+            const boxRatio = drawWidth / drawHeight;
+            let sWidth = userImg.width, sHeight = userImg.height, sX = 0, sY = 0;
+
+            if (imgRatio > boxRatio) {
+                sWidth = sHeight * boxRatio;
+                sX = (userImg.width - sWidth) / 2;
+            } else {
+                sHeight = sWidth / boxRatio;
+                sY = (userImg.height - sHeight) / 2;
+            }
+
+            // Layering
+            ctx.drawImage(userImg, sX, sY, sWidth, sHeight, drawX, drawY, drawWidth, drawHeight);
+            ctx.drawImage(templateImg, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Final Export (JPEG is better for mobile browsers)
+            const finalDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+            
+            if (finalDataUrl === "data:,") {
+                throw new Error("Photo too large for browser memory.");
+            }
+
+            displayImage.src = finalDataUrl;
+            downloadBtn.href = finalDataUrl;
+            downloadBtn.download = "My_Blue_Sofa_Postcard.jpg";
+            downloadBtn.style.display = "inline-block";
+
+            document.querySelector('.upload-wrapper').style.display = 'none';
+            saveInstructions.style.display = 'block';
+
+        } catch (err) {
+            alert("Oops! " + err.message);
+            document.querySelector('.upload-wrapper .btn').innerText = "📸 Try Again";
+        }
+    }
+</script>
+
+</body>
+</html>
