@@ -26,7 +26,7 @@
     <h2>Make It Yours!</h2>
     <p class="subtitle">Upload your photo to embed yourself into the 'Blue Sofa' postcard.</p>
 
-    <img id="hiddenTemplate" src="Blue Sofa_Template.png" style="display:none;" alt="" />
+    <img id="hiddenTemplate" src="Blue%20Sofa_Template.png" style="display:none;" alt="" />
 
     <div class="upload-wrapper">
         <label for="imageLoader" class="btn">📸 Upload Your Photo</label>
@@ -35,7 +35,7 @@
     
     <canvas id="postcardCanvas"></canvas>
 
-    <img id="displayImage" src="Blue Sofa_template.png" alt="Loading Template..." />
+    <img id="displayImage" src="Blue%20Sofa_Template.png" alt="Loading Template..." />
 
     <a id="downloadBtn" class="btn">💾 Download Postcard</a>
 
@@ -47,6 +47,7 @@
 </div>
 
 <script>
+    // Hardcoded canvas size to prevent 0x0 crash
     const CANVAS_WIDTH = 686;
     const CANVAS_HEIGHT = 1188;
 
@@ -59,8 +60,6 @@
     const displayImage = document.getElementById('displayImage');
     const downloadBtn = document.getElementById('downloadBtn');
     const saveInstructions = document.getElementById('saveInstructions');
-    
-    // We grab the hidden HTML image instead of downloading it twice via JavaScript
     const hiddenTemplate = document.getElementById('hiddenTemplate');
 
     imageLoader.addEventListener('change', handleImage, false);
@@ -68,75 +67,6 @@
     function handleImage(e) {
         if (!e.target.files[0]) return;
 
-        // Failsafe: Ensure HTML template is ready
+        // Ensure the template image is actually loaded on the page
         if (!hiddenTemplate.complete || hiddenTemplate.naturalWidth === 0) {
-            alert("Error: Template is still loading. Please wait a second or refresh the page.");
-            return;
-        }
-
-        const uploadLabel = document.querySelector('.upload-wrapper .btn');
-        const originalLabelText = uploadLabel.innerText;
-        uploadLabel.innerText = "⏳ Processing...";
-
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const userImg = new Image();
-            userImg.onload = function() {
-                try {
-                    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-                    const drawX = 330;   
-                    const drawY = 410;  
-                    const drawWidth = 420; 
-                    const drawHeight = 350; 
-
-                    const imgRatio = userImg.width / userImg.height;
-                    const boxRatio = drawWidth / drawHeight;
-                    let sWidth = userImg.width;
-                    let sHeight = userImg.height;
-                    let sX = 0;
-                    let sY = 0;
-
-                    if (imgRatio > boxRatio) {
-                        sWidth = sHeight * boxRatio;
-                        sX = (userImg.width - sWidth) / 2;
-                    } else {
-                        sHeight = sWidth / boxRatio;
-                        sY = (userImg.height - sHeight) / 2;
-                    }
-
-                    // Draw User Photo
-                    ctx.drawImage(userImg, sX, sY, sWidth, sHeight, drawX, drawY, drawWidth, drawHeight);
-                    
-                    // Draw Template Over It directly from the hidden HTML tag
-                    ctx.drawImage(hiddenTemplate, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-                    const finalDataUrl = canvas.toDataURL('image/jpeg', 0.95);
-                    
-                    if (finalDataUrl === "data:,") {
-                        alert("Your photo is too large for your phone's browser memory. Try taking a screenshot of your photo first to shrink the file size, then upload that!");
-                        uploadLabel.innerText = originalLabelText;
-                        return;
-                    }
-
-                    displayImage.src = finalDataUrl;
-                    downloadBtn.href = finalDataUrl;
-                    downloadBtn.download = "My_Blue_Sofa_Postcard.jpg";
-                    downloadBtn.style.display = "inline-block";
-
-                    document.querySelector('.upload-wrapper').style.display = 'none';
-                    saveInstructions.style.display = 'block';
-
-                } catch (err) {
-                    alert("Something went wrong: " + err.message);
-                    uploadLabel.innerText = originalLabelText;
-                }
-            }
-            userImg.src = event.target.result;
-        }
-        reader.readAsDataURL(e.target.files[0]);
-    }
-</script>
-
-</body>
-</html>
+            alert("Error: Template is still loading. Please wait a second or refresh
